@@ -11,14 +11,18 @@ spec:
   hosts:
     - "{{ .Values.virtualservice.host }}"
   gateways:
-    - {{ .Values.virtualservice.gateway }}
+    - gateway-tls
   http:
   - match:
     #{{- range .Values.virtualservice.apis }}
     - uri:
-        prefix: /spring
+        prefix: /nodeserver
+    #{{- end }}
+    - port: 80
+    rewrite:
+      uri: " "
     route:
     - destination:
-        host: {{ template "application.fullname" . }}
         port:
           number: 8080
+        host: {{ template "application.fullname" . }}
