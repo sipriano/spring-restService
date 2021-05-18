@@ -1,0 +1,24 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ template "application.fullname" . }}
+  labels:
+    app: {{ template "application.name" . }}
+    chart: {{ template "application.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  hosts:
+    - "{{ .Values.virtualservice.host }}"
+  gateways:
+    - {{ .Values.virtualservice.gateway }}
+  http:
+  - match:
+    #{{- range .Values.virtualservice.apis }}
+    - uri:
+        prefix: /spring
+    route:
+    - destination:
+        host: {{ template "application.fullname" . }}
+        port:
+          number: 80800

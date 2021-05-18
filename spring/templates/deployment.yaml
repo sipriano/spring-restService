@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "application.fullname" . }}
+  labels:
+    app: {{ template "application.name" . }}
+    chart: {{ template "application.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "application.name" . }}
+      release: {{ .Release.Name }}
+  {{- with .Values.strategy }}
+  strategy:
+{{ toYaml . | indent 4 }}
+  {{- end}}
+  template:
+    metadata:
+      {{- with .Values.prometheus }}
+      annotations:
+{{ toYaml . | indent 8 }}
+      {{- end}}
+      labels:
+        app: {{ template "application.name" . }}
+        release: {{ .Release.Name }}
+        tag: "{{ .Values.image.tag }}"
+        branch: "{{ .Values.image.branch | default "unknown" }}"
+        build: "{{ .Values.image.build | default "unknown" }}"
+        runtime: "{{ .Values.application.runtime }}"
+        type: "{{ .Values.application.type }}"
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # Variável de ambiente será removida do Chart quando o PodPreset
+            # estiver funcionando em todos os ambientes
+            - name: SPRING_PROFILES_ACTIVE
+              value: "{{ .Values.application.profile }}"
+            - name: APPLICATION_NAME
+              value: "{{ .Release.Name }}"
+            - name: APPLICATION_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          {{- with .Values.env }}
+{{ toYaml . | indent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          {{- with .Values.livenessProbe }}
+          #livenessProbe:
+#{{ toYaml . | indent 12 }}
+#          {{- end }}
+#          {{- with .Values.readinessProbe }}
+#          readinessProbe:
+#{{ toYaml . | indent 12 }}
+#          {{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          lifecycle:
+{{ toYaml .Values.lifecycle | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      imagePullSecrets:
+      - name: cgnbackboneacr

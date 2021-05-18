@@ -1,0 +1,138 @@
+# Deploy to Azure Kubernetes Service
+# Build and push image to Azure Container Registry; Deploy to Azure Kubernetes Service
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+- master
+
+resources:
+- repo: self
+
+variables:
+
+  # Container registry service connection established during pipeline creation
+  dockerRegistryServiceConnection: '4b2f6883-71b5-43d9-82ab-e03c243449e5'
+  imageRepository: 'cognaapieda'
+  containerRegistry: 'cgnbackboneacr.azurecr.io'
+  dockerfilePath: '**/Dockerfile'
+  tag: '$(Build.BuildId)'
+  imagePullSecret: 'cgnbackboneacr'
+  azureSubscriptionEndpoint: 'c05dcd1a-b375-47da-9866-ffffcfe07810'
+  repository: '$(Build.Repository.Name)'
+  projectName: 'spring'
+  pass: I0UtZy8crJ8IIB2jmXTtFX+rxQGRlHgG
+  chartVersion: 1.0.0
+
+  # Agent VM image name
+  vmImageName: 'ubuntu-latest'
+  
+
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:  
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@0
+      displayName: Build a container image
+      inputs:
+        containerregistrytype: Container Registry
+        dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+        dockerFile: Dockerfile
+        imageName: $(containerRegistry)/eda/$(repository):latest
+        includeSourceTags: true
+    - task: Docker@0
+      displayName: Push a container image
+      inputs:
+        containerregistrytype: Container Registry
+        dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+        action: Push an image
+        imageName: $(containerRegistry)/eda/$(repository):latest
+    - task: HelmInstaller@0
+      displayName: Install Helm 3.5.4
+      inputs:
+        helmVersion: 3.5.4
+        kubectlVersion: 1.10.3
+        checkLatestKubeCtl: false
+    #- task: HelmDeploy@0
+    #  displayName: helm package
+    #  inputs:
+    #    azureSubscriptionEndpoint: $(azureSubscriptionEndpoint)
+    #    azureResourceGroup: BACKBONE-EDUCACIONAL
+    #    kubernetesCluster: aks-backbone-us-hml
+    #    namespace: hello-world
+    #    command: package
+    #    chartType: FilePath
+    #    chartPath: nodeservereda
+    #    destination: ''
+    #    upgradetiller: false
+    #    save: false
+    #    install: false
+    - task: Bash@3
+      displayName: Package and push chart
+      inputs:
+        targetType: inline
+        script: >-
+
+          chartVersion=`cat $(projectName)/Chart.yaml | grep version | awk -F ': ' '{print $2}'`
+
+          echo "##vso[task.setvariable variable=chartVersion;]$chartVersion"
+
+          helm package $(projectName)
+
+          export HELM_EXPERIMENTAL_OCI=1
+
+
+          echo "$(pass)" | helm registry login $(containerRegistry) --username cgnbackboneacr --password-stdin
+
+          
+          helm chart save $(projectName)-$chartVersion.tgz $(containerRegistry)/helm/$(projectName)-$chartVersion.tgz:latest
+          #helm chart save  nodeserver-1.0.0.tgz $(containerRegistry)/helm/nodeserver-1.0.0.tgz:latest
+
+          helm chart push $(containerRegistry)/helm/$(projectName)-$chartVersion.tgz:latest
+          #helm chart push $(containerRegistry)/helm/nodeserver-1.0.0.tgz:latest
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'cognaapieda-5490.default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: Bash@3
+            displayName: Pull and install chart
+            inputs:
+              targetType: inline
+              script: >2-
+
+                chartVersion=`cat $(projectName)/Chart.yaml | grep version | awk -F ': ' '{print $2}'`
+
+                export HELM_EXPERIMENTAL_OCI=1
+
+                echo "$(pass)" | helm registry login $(containerRegistry) --username cgnbackboneacr --password-stdin
+
+                helm chart pull $(containerRegistry)/helm/$(projectName)-$(chartVersion).tgz:latest
+
+
+                helm chart export $(containerRegistry)/helm/$(projectName)-$(chartVersion).tgz:latest --destination $(build.stagingdirectory)
+          - task: HelmDeploy@0
+            displayName: helm deploy
+            inputs:
+              azureSubscriptionEndpoint: c05dcd1a-b375-47da-9866-ffffcfe07810
+              azureResourceGroup: BACKBONE-EDUCACIONAL
+              kubernetesCluster: aks-backbone-us-hml
+              namespace: hello
+              command: install
+              chartType: FilePath
+              chartName: drop
+              chartPath: $(build.stagingdirectory)/$(projectName)/

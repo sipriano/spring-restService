@@ -1,0 +1,77 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+application:
+  runtime: node
+  type: typescript
+  # Valor temporário enquanto o PodPreset não funciona em todos os ambientes
+  profile: tst
+
+image:
+  repository: cgnbackboneacr.azurecr.io/eda/cicd-backbone-nodejs
+  tag: latest
+  pullPolicy: Always 
+ 
+service:
+  type: ClusterIP
+  port: 80
+  portName: http
+  protocol: TCP
+
+scale:
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 90
+
+virtualservice:
+  host: '*'
+  gateway: backbone-gateway
+  apis:
+    - /url-path/../../..
+
+strategy:
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+  type: RollingUpdate
+
+#livenessProbe:
+#  httpGet:
+#    path: /actuator/health
+#    port: http
+#  initialDelaySeconds: 60
+#  timeoutSeconds: 15
+#  periodSeconds: 30
+#  failureThreshold: 10
+
+#readinessProbe:
+#  httpGet:
+#    path: /actuator/health
+#    port: http
+#  initialDelaySeconds: 60
+#  timeoutSeconds: 15
+#  periodSeconds: 30
+#  failureThreshold: 10
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "512Mi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+prometheus:
+  "prometheus.io/scrape": "true"
+  "prometheus.io/path": "/actuator/prometheus"
+  "prometheus.io/port": "8080"
+
+lifecycle: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+env: []
