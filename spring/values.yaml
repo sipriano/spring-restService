@@ -8,7 +8,7 @@ application:
   profile: tst
 
 image:
-  repository: cgnbackboneacr.azurecr.io/eda/cicd-backbone-nodejs
+  repository: cgnbackboneacr.azurecr.io/eda/spring.api.test
   tag: latest
   pullPolicy: Always 
  
