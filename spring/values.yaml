@@ -2,8 +2,8 @@
 # Declare variables to be passed into your templates.
 
 application:
-  runtime: node
-  type: typescript
+  runtime: java
+  type: spring
   # Valor temporário enquanto o PodPreset não funciona em todos os ambientes
   profile: tst
 
