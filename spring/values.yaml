@@ -4,11 +4,10 @@
 application:
   runtime: java
   type: spring
-  # Valor temporário enquanto o PodPreset não funciona em todos os ambientes
   profile: tst
 
 image:
-  repository: cgnbackboneacr.azurecr.io/eda/spring.api.test
+  repository: 
   tag: latest
   pullPolicy: Always 
  
@@ -25,7 +24,7 @@ scale:
 
 virtualservice:
   host: '*'
-  gateway: backbone-gateway
+  gateway: gateway
   apis:
     - /url-path/../../..
 

@@ -78,4 +78,4 @@ spec:
 {{ toYaml . | indent 8 }}
     {{- end }}
       imagePullSecrets:
-      - name: cgnbackboneacr
+      - name: 

@@ -16,7 +16,7 @@ spec:
   - match:
     #{{- range .Values.virtualservice.apis }}
     - uri:
-        prefix: /spring
+        prefix: /hello
     #{{- end }}
     - port: 80
     rewrite:

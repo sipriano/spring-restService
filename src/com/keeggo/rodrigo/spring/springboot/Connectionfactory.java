@@ -13,15 +13,15 @@ public class Connectionfactory {
 		
 		try {
 			Class.forName("org.postgresql.Driver");
-			String url = "jdbc:postgresql://data-vault-dev.ct4gbdobfiha.us-east-1.rds.amazonaws.com:5432/postgres";
+			String url = "";
 			Properties props = new Properties();
-			props.setProperty("user","u404");
-			props.setProperty("password","cat+fG3fZQ?evx=K");
+			props.setProperty("user","");
+			props.setProperty("password","");
 			props.setProperty("ssl","false");
 			conn = DriverManager.getConnection(url, props);
 			System.out.println("Conectado!");
 		} catch (SQLException | ClassNotFoundException e) {
-			// TODO Auto-generated catch block
+			
 			e.printStackTrace();
 		}
 		
